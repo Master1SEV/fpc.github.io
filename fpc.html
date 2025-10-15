@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Калькулятор давления в покрышках фэтбайка</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111827;
+            --secondary-bg-color: #1f2937;
+            --text-color: #ffffff;
+            --hint-color: #9ca3af;
+            --button-color: #7c3aed;
+            --button-text-color: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .app-container {
+             background-color: var(--secondary-bg-color);
+             border-color: #374151;
+        }
+        .input-field, .custom-select {
+            background-color: #374151;
+            color: var(--text-color);
+            border-color: #4b5563;
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 2px var(--secondary-bg-color), 0 0 0 4px var(--button-color);
+        }
+        .result-card {
+            background: linear-gradient(145deg, #2a2d3e, #31354a);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+        }
+        .btn-calculate {
+            background: var(--button-color);
+            color: var(--button-text-color);
+            transition: all 0.3s ease;
+        }
+        .btn-calculate:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        .prose { max-width: 65ch; }
+        .prose strong { color: #c7d2fe; }
+        .prose ul > li::before { background-color: #818cf8; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl p-6 md:p-10 border app-container">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Калькулятор давления в покрышках фэтбайка</h1>
+            <p style="color: var(--hint-color);" class="mt-2">Найдите идеальное давление для максимального удовольствия от катания!</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Rider Weight -->
+            <div>
+                <label for="riderWeight" class="block text-sm font-medium mb-2">Ваш вес с экипировкой (кг)</label>
+                <input type="number" id="riderWeight" value="85" class="w-full rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field" placeholder="Например, 85">
+                <p id="weightError" class="text-red-400 text-sm mt-1 hidden">Пожалуйста, введите корректный вес.</p>
+            </div>
+
+            <!-- Tire Width -->
+            <div>
+                <label for="tireWidth" class="block text-sm font-medium mb-2">Ширина покрышки (дюймы)</label>
+                <select id="tireWidth" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                    <option value="3.8">3.8"</option>
+                    <option value="4.0">4.0"</option>
+                    <option value="4.2">4.2"</option>
+                    <option value="4.5">4.5"</option>
+                    <option value="4.8" selected>4.8"</option>
+                    <option value="5.0">5.0"</option>
+                </select>
+            </div>
+            
+            <!-- Surface Type -->
+            <div>
+                <label for="surface" class="block text-sm font-medium mb-2">Тип поверхности</label>
+                <select id="surface" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                    <option value="snow">Рыхлый снег / Мягкий песок</option>
+                    <option value="trail" selected>Трейл / Укатанный грунт</option>
+                    <option value="pavement">Асфальт / Плотный грунт</option>
+                </select>
+            </div>
+
+            <!-- Setup Type -->
+            <div>
+                <label for="setup" class="block text-sm font-medium mb-2">Тип установки</label>
+                <select id="setup" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                    <option value="tubeless">Бескамерная</option>
+                    <option value="tubed">Камерная</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Calculate Button -->
+        <div class="mb-8">
+            <button id="calculateBtn" class="w-full text-white font-bold py-4 px-4 rounded-lg text-lg btn-calculate">
+                Рассчитать давление
+            </button>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result" class="hidden">
+            <h2 class="text-2xl font-semibold text-center mb-6">Рекомендуемое стартовое давление</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Front Tire -->
+                <div class="text-center rounded-xl p-6 result-card border border-gray-700">
+                    <p class="text-lg font-medium text-indigo-400 mb-2">Передняя покрышка</p>
+                    <p id="frontTirePSI" class="text-4xl font-bold"></p>
+                    <p id="frontTireBAR" style="color: var(--hint-color);"></p>
+                </div>
+                <!-- Rear Tire -->
+                <div class="text-center rounded-xl p-6 result-card border border-gray-700">
+                    <p class="text-lg font-medium text-purple-400 mb-2">Задняя покрышка</p>
+                    <p id="rearTirePSI" class="text-4xl font-bold"></p>
+                    <p id="rearTireBAR" style="color: var(--hint-color);"></p>
+                </div>
+            </div>
+             <p class="text-center mt-6 text-sm" style="color: var(--hint-color);">
+                *Это лишь отправная точка. Не бойтесь экспериментировать, добавляя или убавляя 0.5-1 PSI для достижения идеального контроля и комфорта.
+            </p>
+            <!-- Gemini Feature -->
+            <div class="mt-8 text-center">
+                <button id="geminiBtn" class="font-semibold py-3 px-6 rounded-lg text-base border-2 hover:opacity-90 transition-all duration-300 ease-in-out transform hover:scale-105" style="border-color: var(--button-color); color: var(--button-color);">
+                    ✨ Получить советы по настройке от AI
+                </button>
+            </div>
+
+            <div id="gemini-tips-container" class="hidden mt-8 p-6 rounded-lg border" style="background-color: rgba(124, 58, 237, 0.05); border-color: rgba(124, 58, 237, 0.2);">
+                <div id="gemini-loading" class="text-center" style="color: var(--hint-color);">
+                    <div class="flex justify-center items-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Генерирую персональные советы...</span>
+                    </div>
+                </div>
+                <div id="gemini-tips-content" class="hidden prose prose-invert max-w-none">
+                    <!-- AI tips will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultDiv = document.getElementById('result');
+
+        const frontTirePSI = document.getElementById('frontTirePSI');
+        const frontTireBAR = document.getElementById('frontTireBAR');
+        const rearTirePSI = document.getElementById('rearTirePSI');
+        const rearTireBAR = document.getElementById('rearTireBAR');
+        const weightError = document.getElementById('weightError');
+        
+        const geminiBtn = document.getElementById('geminiBtn');
+        const geminiTipsContainer = document.getElementById('gemini-tips-container');
+        const geminiLoading = document.getElementById('gemini-loading');
+        const geminiTipsContent = document.getElementById('gemini-tips-content');
+        
+        let calculatedPressures = {};
+
+        // --- Telegram Mini App Integration ---
+        try {
+            const tg = window.Telegram.WebApp;
+            tg.ready(); // Inform Telegram the app is ready
+
+            const applyTheme = () => {
+                document.documentElement.style.setProperty('--bg-color', tg.themeParams.bg_color || '#111827');
+                document.documentElement.style.setProperty('--secondary-bg-color', tg.themeParams.secondary_bg_color || '#1f2937');
+                document.documentElement.style.setProperty('--text-color', tg.themeParams.text_color || '#ffffff');
+                document.documentElement.style.setProperty('--hint-color', tg.themeParams.hint_color || '#9ca3af');
+                document.documentElement.style.setProperty('--button-color', tg.themeParams.button_color || '#7c3aed');
+                document.documentElement.style.setProperty('--button-text-color', tg.themeParams.button_text_color || '#ffffff');
+            };
+
+            tg.onEvent('themeChanged', applyTheme);
+            applyTheme(); // Apply theme on initial load
+
+        } catch (e) {
+            console.log("Not running inside Telegram or Telegram Web App script failed to load.");
+        }
+        
+        const triggerHapticFeedback = (style = 'light') => {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred(style);
+            }
+        };
+
+
+        calculateBtn.addEventListener('click', () => {
+            triggerHapticFeedback('medium');
+            geminiTipsContainer.classList.add('hidden');
+            geminiTipsContent.classList.add('hidden');
+            geminiTipsContent.innerHTML = '';
+
+            const riderWeightInput = document.getElementById('riderWeight');
+            const riderWeight = parseFloat(riderWeightInput.value);
+            const tireWidth = parseFloat(document.getElementById('tireWidth').value);
+            const surface = document.getElementById('surface').value;
+            const setup = document.getElementById('setup').value;
+
+            if (isNaN(riderWeight) || riderWeight <= 0) {
+                weightError.classList.remove('hidden');
+                riderWeightInput.focus();
+                if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                return;
+            } else {
+                weightError.classList.add('hidden');
+            }
+
+            let basePSI = (riderWeight / 10) + 1;
+            if (tireWidth <= 3.8) basePSI += 1.0;
+            else if (tireWidth <= 4.0) basePSI += 0.5;
+            else if (tireWidth <= 4.5) basePSI -= 0.5;
+            else if (tireWidth <= 4.8) basePSI -= 1.0;
+            else basePSI -= 1.5;
+            if (surface === 'snow') basePSI -= 2.0;
+            else if (surface === 'pavement') basePSI += 3.0;
+            if (setup === 'tubeless') basePSI -= 0.5;
+            else basePSI += 0.5;
+
+            let rearPressure = Math.max(basePSI, 2.5);
+            let frontPressure = Math.max(rearPressure - 1.5, 2.0);
+
+            calculatedPressures = {
+                front: frontPressure.toFixed(1),
+                rear: rearPressure.toFixed(1)
+            };
+
+            const psiToBar = 0.0689476;
+            const rearPressureBar = rearPressure * psiToBar;
+            const frontPressureBar = frontPressure * psiToBar;
+
+            frontTirePSI.textContent = `${frontPressure.toFixed(1)} PSI`;
+            frontTireBAR.textContent = `~ ${frontPressureBar.toFixed(2)} BAR`;
+            rearTirePSI.textContent = `${rearPressure.toFixed(1)} PSI`;
+            rearTireBAR.textContent = `~ ${rearPressureBar.toFixed(2)} BAR`;
+            
+            resultDiv.classList.remove('hidden');
+        });
+
+        geminiBtn.addEventListener('click', () => {
+            triggerHapticFeedback('light');
+            getTuningTips();
+        });
+
+        async function getTuningTips() {
+            geminiTipsContainer.classList.remove('hidden');
+            geminiLoading.classList.remove('hidden');
+            geminiTipsContent.classList.add('hidden');
+            geminiTipsContent.innerHTML = '';
+
+            const riderWeight = document.getElementById('riderWeight').value;
+            const tireWidth = document.getElementById('tireWidth').value;
+            const surfaceSelect = document.getElementById('surface');
+            const surfaceText = surfaceSelect.options[surfaceSelect.selectedIndex].text;
+            const setupSelect = document.getElementById('setup');
+            const setupText = setupSelect.options[setupSelect.selectedIndex].text.toLowerCase();
+
+            const systemPrompt = "Ты — опытный и дружелюбный веломеханик, специализирующийся на фэтбайках. Твоя задача — дать три практичных и понятных совета по тонкой настройке велосипеда на основе данных райдера. Объясняй причину каждого совета простым языком. Отвечай на русском языке. Отформатируй ответ, используя базовый markdown (заголовки, списки).";
+            
+            const userQuery = `Мой вес с экипировкой: ${riderWeight} кг. Ширина покрышек: ${tireWidth} дюйма. Тип установки: ${setupText}. Я катаюсь по поверхности: "${surfaceText}". Рекомендуемое давление: ${calculatedPressures.front} PSI для передней и ${calculatedPressures.rear} PSI для задней покрышки. Дай мне три совета по тонкой настройке для этих условий, чтобы улучшить сцепление, накат и комфорт.`;
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                let response;
+                let retries = 3;
+                let delay = 1000;
+                for (let i = 0; i < retries; i++) {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) break;
+                    if (response.status === 429 || response.status >= 500) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                    } else { break; }
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const text = candidate.content.parts[0].text;
+                    const formattedText = text
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .split('\n').map(line => line.trim())
+                        .filter(line => line)
+                        .map(line => {
+                            if (line.match(/^(\d\.|-|\*)\s/)) {
+                                return `<li class="pl-2">${line.replace(/^(\d\.|-|\*)\s/, '')}</li>`;
+                            }
+                            return `<p>${line}</p>`;
+                        }).join('');
+                    geminiTipsContent.innerHTML = `<h3 class="text-xl font-semibold mb-4">Персональные советы по настройке:</h3><ul class="list-disc list-inside space-y-3">${formattedText}</ul>`;
+                    if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                } else {
+                    geminiTipsContent.innerHTML = '<p class="text-red-400">Не удалось получить советы. Пожалуйста, попробуйте еще раз.</p>';
+                    if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                geminiTipsContent.innerHTML = '<p class="text-red-400">Произошла ошибка при обращении к AI. Проверьте консоль для получения дополнительной информации.</p>';
+                if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+            } finally {
+                geminiLoading.classList.add('hidden');
+                geminiTipsContent.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
+
