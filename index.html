@@ -99,12 +99,37 @@
         <div class="space-y-6 mb-8">
             <!-- Rider Weight -->
             <div>
-                <label for="riderWeight" class="block text-sm font-medium mb-2">Ваш вес с экипировкой (кг)</label>
+                <label for="riderWeight" class="block text-sm font-medium mb-2">Ваш вес (кг)</label>
                 <div class="flex items-center space-x-4">
-                    <input type="range" id="riderWeightSlider" min="40" max="150" value="85" class="w-full">
-                    <input type="number" id="riderWeight" min="40" max="150" value="85" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                    <input type="range" id="riderWeightSlider" min="40" max="130" value="75" class="w-full">
+                    <input type="number" id="riderWeight" min="40" max="130" value="75" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
                 </div>
             </div>
+            <!-- Bike Weight -->
+            <div>
+                <label for="bikeWeight" class="block text-sm font-medium mb-2">Вес велосипеда (кг)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="bikeWeightSlider" min="10" max="30" value="15" class="w-full">
+                    <input type="number" id="bikeWeight" min="10" max="30" value="15" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+            <!-- Gear Weight -->
+            <div>
+                <label for="gearWeight" class="block text-sm font-medium mb-2">Вес экипировки (кг)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="gearWeightSlider" min="0" max="20" value="5" class="w-full">
+                    <input type="number" id="gearWeight" min="0" max="20" value="5" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+
+            <!-- Total Weight -->
+            <div class="pt-4 border-t" style="border-color: #374151;">
+                 <div class="flex justify-between items-center">
+                     <span class="text-lg font-medium">Общий вес:</span>
+                     <span id="totalWeightDisplay" class="text-2xl font-bold text-indigo-400">95.0 кг</span>
+                 </div>
+            </div>
+
 
             <!-- Tire Width -->
             <div>
@@ -190,6 +215,11 @@
         // --- DOM Elements ---
         const riderWeightSlider = document.getElementById('riderWeightSlider');
         const riderWeightInput = document.getElementById('riderWeight');
+        const bikeWeightSlider = document.getElementById('bikeWeightSlider');
+        const bikeWeightInput = document.getElementById('bikeWeight');
+        const gearWeightSlider = document.getElementById('gearWeightSlider');
+        const gearWeightInput = document.getElementById('gearWeight');
+        const totalWeightDisplay = document.getElementById('totalWeightDisplay');
         const tireWidthSlider = document.getElementById('tireWidthSlider');
         const tireWidthInput = document.getElementById('tireWidth');
         const calculateBtn = document.getElementById('calculateBtn');
@@ -226,12 +256,36 @@
             window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(style);
         };
         
-        // --- Input Sync ---
-        riderWeightSlider.addEventListener('input', (e) => { riderWeightInput.value = e.target.value; });
-        riderWeightInput.addEventListener('input', (e) => { riderWeightSlider.value = e.target.value; });
+        // --- Total Weight Calculation ---
+        const updateTotalWeight = () => {
+            const rider = parseFloat(riderWeightInput.value) || 0;
+            const bike = parseFloat(bikeWeightInput.value) || 0;
+            const gear = parseFloat(gearWeightInput.value) || 0;
+            const total = rider + bike + gear;
+            totalWeightDisplay.textContent = `${total.toFixed(1)} кг`;
+        };
+
+        // --- Input Sync & Listeners ---
+        const inputsAndSliders = [
+            [riderWeightInput, riderWeightSlider],
+            [bikeWeightInput, bikeWeightSlider],
+            [gearWeightInput, gearWeightSlider]
+        ];
+        
+        inputsAndSliders.forEach(([input, slider]) => {
+            input.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                updateTotalWeight();
+            });
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                updateTotalWeight();
+            });
+        });
+        
         tireWidthSlider.addEventListener('input', (e) => { tireWidthInput.value = e.target.value; });
         tireWidthInput.addEventListener('input', (e) => { tireWidthSlider.value = e.target.value; });
-
+        
         // --- Manometer Logic ---
         manometerErrorCheckbox.addEventListener('change', (e) => {
             manometerOptions.classList.toggle('hidden', !e.target.checked);
@@ -242,18 +296,22 @@
             triggerHapticFeedback('medium');
             
             const riderWeight = parseFloat(riderWeightInput.value);
+            const bikeWeight = parseFloat(bikeWeightInput.value);
+            const gearWeight = parseFloat(gearWeightInput.value);
+            const totalWeight = riderWeight + bikeWeight + gearWeight;
+            
             const tireWidth = parseFloat(tireWidthInput.value);
             const surface = document.getElementById('surface').value;
             const setup = document.getElementById('setup').value;
             const useManometerError = manometerErrorCheckbox.checked;
 
-            if (isNaN(riderWeight) || isNaN(tireWidth) || riderWeight <= 0 || tireWidth <= 0) {
+            if (isNaN(totalWeight) || isNaN(tireWidth) || totalWeight <= 0 || tireWidth <= 0) {
                  resultDiv.innerHTML = `<p class="text-center text-red-400">Пожалуйста, введите корректные значения веса и ширины.</p>`;
                  resultDiv.classList.remove('hidden');
                  return;
             }
 
-            let basePSI = (riderWeight / 10) + 1;
+            let basePSI = (totalWeight / 10) + 1;
             if (tireWidth <= 3.8) basePSI += 1.0;
             else if (tireWidth <= 4.0) basePSI += 0.5;
             else if (tireWidth <= 4.5) basePSI -= 0.5;
@@ -283,7 +341,8 @@
             const psiToBar = 0.0689476;
             
             resultDiv.innerHTML = `
-                <h2 class="text-2xl font-semibold text-center mb-6">Рекомендуемое давление</h2>
+                <h2 class="text-2xl font-semibold text-center mb-4">Рекомендуемое давление</h2>
+                <p class="text-center mb-6 text-sm" style="color: var(--hint-color);">Общий вес: ${totalWeight.toFixed(1)} кг</p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div class="text-center rounded-xl p-6 border border-gray-700" style="background: linear-gradient(145deg, #2a2d3e, #31354a);">
                         <p class="text-lg font-medium text-indigo-400 mb-2">Передняя</p>
@@ -387,7 +446,7 @@
                 signIn();
 
                 likeBtn.addEventListener('click', () => handleVote('like'));
-                dislikeBtn.addEventListener('click', () => handleVote('like'));
+                dislikeBtn.addEventListener('click', () => handleVote('dislike'));
 
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
@@ -395,6 +454,9 @@
         } else {
             console.log("Firebase config not found. Feedback feature is disabled.");
         }
+        
+        // Initial call to set total weight on page load
+        document.addEventListener('DOMContentLoaded', updateTotalWeight);
 
     </script>
 </body>
