@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Калькулятор давления в покрышках фэтбайка</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #111827;
+            --secondary-bg-color: #1f2937;
+            --text-color: #ffffff;
+            --hint-color: #9ca3af;
+            --button-color: #7c3aed;
+            --button-text-color: #ffffff;
+            --slider-track-color: #4b5563;
+            --slider-thumb-color: var(--button-color);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .app-container {
+             background-color: var(--secondary-bg-color);
+             border-color: #374151;
+        }
+        .input-field, .custom-select {
+            background-color: #374151;
+            color: var(--text-color);
+            border-color: #4b5563;
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 2px var(--secondary-bg-color), 0 0 0 4px var(--button-color);
+        }
+        .btn-calculate {
+            background: var(--button-color);
+            color: var(--button-text-color);
+            transition: all 0.3s ease;
+        }
+        .btn-calculate:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 8px;
+            background: var(--slider-track-color);
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover { opacity: 1; }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px;
+            background: var(--slider-thumb-color);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px; height: 20px;
+            background: var(--slider-thumb-color);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .feedback-btn.selected {
+            background-color: var(--button-color) !important;
+            color: var(--button-text-color) !important;
+        }
+        .feedback-btn.selected svg { fill: var(--button-text-color); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl p-6 md:p-10 border app-container">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Калькулятор давления</h1>
+            <p style="color: var(--hint-color);" class="mt-2">Для вашего фэтбайка</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="space-y-6 mb-8">
+            <!-- Rider Weight -->
+            <div>
+                <label for="riderWeight" class="block text-sm font-medium mb-2">Ваш вес (кг)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="riderWeightSlider" min="40" max="130" value="75" class="w-full">
+                    <input type="number" id="riderWeight" min="40" max="130" value="75" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+            <!-- Bike Weight -->
+            <div>
+                <label for="bikeWeight" class="block text-sm font-medium mb-2">Вес велосипеда (кг)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="bikeWeightSlider" min="10" max="30" value="15" class="w-full">
+                    <input type="number" id="bikeWeight" min="10" max="30" value="15" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+            <!-- Gear Weight -->
+            <div>
+                <label for="gearWeight" class="block text-sm font-medium mb-2">Вес экипировки (кг)</label>
+                <div class="flex items-center space-x-4">
+                    <input type="range" id="gearWeightSlider" min="0" max="20" value="5" class="w-full">
+                    <input type="number" id="gearWeight" min="0" max="20" value="5" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+
+            <!-- Total Weight -->
+            <div class="pt-4 border-t" style="border-color: #374151;">
+                 <div class="flex justify-between items-center">
+                     <span class="text-lg font-medium">Общий вес:</span>
+                     <span id="totalWeightDisplay" class="text-2xl font-bold text-indigo-400">95.0 кг</span>
+                 </div>
+            </div>
+
+
+            <!-- Tire Width -->
+            <div>
+                <label for="tireWidth" class="block text-sm font-medium mb-2">Ширина покрышки (дюймы)</label>
+                 <div class="flex items-center space-x-4">
+                    <input type="range" id="tireWidthSlider" min="3.0" max="5.5" step="0.1" value="4.8" class="w-full">
+                    <input type="number" id="tireWidth" step="0.1" min="3.0" max="5.5" value="4.8" class="w-24 rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <!-- Surface Type -->
+                <div>
+                    <label for="surface" class="block text-sm font-medium mb-2">Тип поверхности</label>
+                    <select id="surface" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                        <option value="snow">Рыхлый снег / Песок</option>
+                        <option value="trail" selected>Трейл / Грунт</option>
+                        <option value="pavement">Асфальт / Плотный грунт</option>
+                    </select>
+                </div>
+
+                <!-- Setup Type -->
+                <div>
+                    <label for="setup" class="block text-sm font-medium mb-2">Тип установки</label>
+                    <select id="setup" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                        <option value="tubeless">Бескамерная</option>
+                        <option value="tubed">Камерная</option>
+                    </select>
+                </div>
+            </div>
+            
+             <!-- Manometer Error -->
+            <div class="space-y-3">
+                <div class="flex items-center">
+                    <input id="manometerError" type="checkbox" class="h-4 w-4 rounded" style="accent-color: var(--button-color);">
+                    <label for="manometerError" class="ml-2 block text-sm">Учесть погрешность манометра</label>
+                </div>
+                <div id="manometerOptions" class="hidden grid grid-cols-2 gap-4">
+                    <input type="number" id="manometerValue" value="5" class="w-full rounded-lg p-3 focus:outline-none transition duration-200 input-focus input-field text-center">
+                    <select id="manometerUnit" class="w-full rounded-lg p-3 appearance-none focus:outline-none transition duration-200 input-focus custom-select">
+                        <option value="percent">%</option>
+                        <option value="psi">PSI</option>
+                    </select>
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="mb-8">
+            <button id="calculateBtn" class="w-full text-white font-bold py-4 px-4 rounded-lg text-lg btn-calculate">
+                Рассчитать
+            </button>
+        </div>
+
+        <!-- Result Section -->
+        <div id="result" class="hidden">
+            <!-- Results display... -->
+        </div>
+        
+        <!-- Feedback section -->
+        <div class="border-t mt-10 pt-6" style="border-color: #374151;">
+            <p class="text-center text-sm mb-4" style="color: var(--hint-color);">Полезен ли был калькулятор?</p>
+            <div class="flex justify-center items-center space-x-4">
+                <button id="likeBtn" class="feedback-btn flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors" style="border-color: #4b5563;">
+                    <svg class="w-5 h-5" style="fill: #9ca3af;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7.33333 21.3333H4C3.26362 21.3333 2.66667 20.7364 2.66667 20V12C2.66667 11.2636 3.26362 10.6667 4 10.6667H7.33333M18.106 12.106L14.7727 4.10606C14.629 3.7553 14.2801 3.53039 13.901 3.5303H13.8867C13.251 3.5303 12.7055 3.99955 12.6101 4.62803L11.3333 13.3333H8.51852C7.84883 13.3333 7.33333 13.8488 7.33333 14.5185V18.6481C7.33333 19.3178 7.84883 19.8333 8.51852 19.8333H17.3333C17.7405 19.8333 18.125 19.6416 18.3694 19.3173L19.4975 17.618C20.0763 16.756 20.5283 15.6565 20.4439 14.5185C20.3553 13.3106 19.4673 12.3553 18.3333 12.2667H18.106Z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span id="likesCount">0</span>
+                </button>
+                <button id="dislikeBtn" class="feedback-btn flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors" style="border-color: #4b5563;">
+                    <svg class="w-5 h-5" style="fill: #9ca3af;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16.6667 2.66666H20C20.7364 2.66666 21.3333 3.26361 21.3333 3.99999V12C21.3333 12.7364 20.7364 13.3333 20 13.3333H16.6667M5.89396 11.8939L9.2273 19.8939C9.37105 20.2447 9.71993 20.4696 10.099 20.4697H10.1133C10.749 20.4697 11.2945 20.0004 11.3899 19.372L12.6667 10.6667H15.4815C16.1512 10.6667 16.6667 10.1512 16.6667 9.48147V5.35184C16.6667 4.68215 16.1512 4.16666 15.4815 4.16666H6.66669C6.25949 4.16666 5.875 4.35839 5.63056 4.68269L4.50247 6.38198C3.92372 7.24398 3.47171 8.3435 3.55611 9.48147C3.64468 10.6894 4.53272 11.6447 5.66669 11.7333H5.89396Z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <span id="dislikesCount">0</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // --- DOM Elements ---
+        const riderWeightSlider = document.getElementById('riderWeightSlider');
+        const riderWeightInput = document.getElementById('riderWeight');
+        const bikeWeightSlider = document.getElementById('bikeWeightSlider');
+        const bikeWeightInput = document.getElementById('bikeWeight');
+        const gearWeightSlider = document.getElementById('gearWeightSlider');
+        const gearWeightInput = document.getElementById('gearWeight');
+        const totalWeightDisplay = document.getElementById('totalWeightDisplay');
+        const tireWidthSlider = document.getElementById('tireWidthSlider');
+        const tireWidthInput = document.getElementById('tireWidth');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultDiv = document.getElementById('result');
+        const manometerErrorCheckbox = document.getElementById('manometerError');
+        const manometerOptions = document.getElementById('manometerOptions');
+
+        // Feedback Elements
+        const likeBtn = document.getElementById('likeBtn');
+        const dislikeBtn = document.getElementById('dislikeBtn');
+        const likesCountSpan = document.getElementById('likesCount');
+        const dislikesCountSpan = document.getElementById('dislikesCount');
+
+        // --- Telegram Mini App Integration ---
+        try {
+            const tg = window.Telegram.WebApp;
+            tg.ready();
+            const applyTheme = () => {
+                const root = document.documentElement;
+                root.style.setProperty('--bg-color', tg.themeParams.bg_color || '#111827');
+                root.style.setProperty('--secondary-bg-color', tg.themeParams.secondary_bg_color || '#1f2937');
+                root.style.setProperty('--text-color', tg.themeParams.text_color || '#ffffff');
+                root.style.setProperty('--hint-color', tg.themeParams.hint_color || '#9ca3af');
+                root.style.setProperty('--button-color', tg.themeParams.button_color || '#7c3aed');
+                root.style.setProperty('--button-text-color', tg.themeParams.button_text_color || '#ffffff');
+            };
+            tg.onEvent('themeChanged', applyTheme);
+            applyTheme();
+        } catch (e) {
+            console.log("Not running inside Telegram or SDK failed to load.");
+        }
+        
+        const triggerHapticFeedback = (style = 'light') => {
+            window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(style);
+        };
+        
+        // --- Total Weight Calculation ---
+        const updateTotalWeight = () => {
+            const rider = parseFloat(riderWeightInput.value) || 0;
+            const bike = parseFloat(bikeWeightInput.value) || 0;
+            const gear = parseFloat(gearWeightInput.value) || 0;
+            const total = rider + bike + gear;
+            totalWeightDisplay.textContent = `${total.toFixed(1)} кг`;
+        };
+
+        // --- Input Sync & Listeners ---
+        const inputsAndSliders = [
+            [riderWeightInput, riderWeightSlider],
+            [bikeWeightInput, bikeWeightSlider],
+            [gearWeightInput, gearWeightSlider]
+        ];
+        
+        inputsAndSliders.forEach(([input, slider]) => {
+            input.addEventListener('input', (e) => {
+                slider.value = e.target.value;
+                updateTotalWeight();
+            });
+            slider.addEventListener('input', (e) => {
+                input.value = e.target.value;
+                updateTotalWeight();
+            });
+        });
+        
+        tireWidthSlider.addEventListener('input', (e) => { tireWidthInput.value = e.target.value; });
+        tireWidthInput.addEventListener('input', (e) => { tireWidthSlider.value = e.target.value; });
+        
+        // --- Manometer Logic ---
+        manometerErrorCheckbox.addEventListener('change', (e) => {
+            manometerOptions.classList.toggle('hidden', !e.target.checked);
+        });
+
+        // --- Calculation Logic ---
+        calculateBtn.addEventListener('click', () => {
+            triggerHapticFeedback('medium');
+            
+            const riderWeight = parseFloat(riderWeightInput.value);
+            const bikeWeight = parseFloat(bikeWeightInput.value);
+            const gearWeight = parseFloat(gearWeightInput.value);
+            const totalWeight = riderWeight + bikeWeight + gearWeight;
+            
+            const tireWidth = parseFloat(tireWidthInput.value);
+            const surface = document.getElementById('surface').value;
+            const setup = document.getElementById('setup').value;
+            const useManometerError = manometerErrorCheckbox.checked;
+
+            if (isNaN(totalWeight) || isNaN(tireWidth) || totalWeight <= 0 || tireWidth <= 0) {
+                 resultDiv.innerHTML = `<p class="text-center text-red-400">Пожалуйста, введите корректные значения веса и ширины.</p>`;
+                 resultDiv.classList.remove('hidden');
+                 return;
+            }
+
+            let basePSI = (totalWeight / 10) + 1;
+            if (tireWidth <= 3.8) basePSI += 1.0;
+            else if (tireWidth <= 4.0) basePSI += 0.5;
+            else if (tireWidth <= 4.5) basePSI -= 0.5;
+            else if (tireWidth <= 4.8) basePSI -= 1.0;
+            else basePSI -= 1.5;
+
+            if (surface === 'snow') basePSI -= 2.0;
+            else if (surface === 'pavement') basePSI += 3.0;
+            if (setup === 'tubeless') basePSI -= 0.5;
+            else basePSI += 0.5;
+            
+            if (useManometerError) {
+                const errorValue = parseFloat(document.getElementById('manometerValue').value);
+                const errorUnit = document.getElementById('manometerUnit').value;
+                if (!isNaN(errorValue)) {
+                    if (errorUnit === 'psi') {
+                        basePSI += errorValue;
+                    } else if (errorUnit === 'percent') {
+                        basePSI *= (1 + errorValue / 100);
+                    }
+                }
+            }
+
+            let rearPressure = Math.max(basePSI, 2.5);
+            let frontPressure = Math.max(rearPressure - 1.5, 2.0);
+
+            const psiToBar = 0.0689476;
+            
+            resultDiv.innerHTML = `
+                <h2 class="text-2xl font-semibold text-center mb-4">Рекомендуемое давление</h2>
+                <p class="text-center mb-6 text-sm" style="color: var(--hint-color);">Общий вес: ${totalWeight.toFixed(1)} кг</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="text-center rounded-xl p-6 border border-gray-700" style="background: linear-gradient(145deg, #2a2d3e, #31354a);">
+                        <p class="text-lg font-medium text-indigo-400 mb-2">Передняя</p>
+                        <p class="text-4xl font-bold">${frontPressure.toFixed(1)} PSI</p>
+                        <p style="color: var(--hint-color);">~ ${(frontPressure * psiToBar).toFixed(2)} BAR</p>
+                    </div>
+                    <div class="text-center rounded-xl p-6 border border-gray-700" style="background: linear-gradient(145deg, #2a2d3e, #31354a);">
+                        <p class="text-lg font-medium text-purple-400 mb-2">Задняя</p>
+                        <p class="text-4xl font-bold">${rearPressure.toFixed(1)} PSI</p>
+                        <p style="color: var(--hint-color);">~ ${(rearPressure * psiToBar).toFixed(2)} BAR</p>
+                    </div>
+                </div>`;
+            resultDiv.classList.remove('hidden');
+        });
+
+        // --- Firebase Logic ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fatbike-pressure-calc-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        let db;
+
+        const updateButtonsUI = (vote) => {
+             likeBtn.classList.toggle('selected', vote === 'like');
+             dislikeBtn.classList.toggle('selected', vote === 'dislike');
+        };
+
+        const handleVote = async (newVote) => {
+            if (!db) return;
+            triggerHapticFeedback('light');
+            const feedbackRef = doc(db, `/artifacts/${appId}/public/data/ratings`, "feedback");
+            const currentVote = localStorage.getItem('fatbikeAppVote');
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const docSnap = await transaction.get(feedbackRef);
+                    let likes = docSnap.exists() ? docSnap.data().likes || 0 : 0;
+                    let dislikes = docSnap.exists() ? docSnap.data().dislikes || 0 : 0;
+                    
+                    // Revert previous vote if it exists
+                    if (currentVote === 'like') likes--;
+                    if (currentVote === 'dislike') dislikes--;
+                    
+                    // Apply new vote, or un-vote if clicking the same button
+                    if (currentVote === newVote) {
+                        localStorage.removeItem('fatbikeAppVote');
+                    } else {
+                        if (newVote === 'like') likes++;
+                        if (newVote === 'dislike') dislikes++;
+                        localStorage.setItem('fatbikeAppVote', newVote);
+                    }
+                    
+                    transaction.set(feedbackRef, { 
+                        likes: Math.max(0, likes), 
+                        dislikes: Math.max(0, dislikes),
+                        lastUpdated: serverTimestamp() 
+                    }, { merge: true });
+                });
+                updateButtonsUI(localStorage.getItem('fatbikeAppVote'));
+            } catch (e) {
+                console.error("Transaction failed: ", e);
+            }
+        };
+
+        if (firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        // User is signed in.
+                        const feedbackRef = doc(db, `/artifacts/${appId}/public/data/ratings`, "feedback");
+                        onSnapshot(feedbackRef, (doc) => {
+                            const data = doc.data();
+                            likesCountSpan.textContent = data?.likes || 0;
+                            dislikesCountSpan.textContent = data?.dislikes || 0;
+                        }, (error) => {
+                            console.error("Snapshot listener error:", error);
+                        });
+                        
+                        const savedVote = localStorage.getItem('fatbikeAppVote');
+                        if (savedVote) {
+                            updateButtonsUI(savedVote);
+                        }
+                    }
+                });
+                
+                const signIn = async () => {
+                    try {
+                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (token) {
+                            await signInWithCustomToken(auth, token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Authentication failed:", error);
+                    }
+                };
+                signIn();
+
+                likeBtn.addEventListener('click', () => handleVote('like'));
+                dislikeBtn.addEventListener('click', () => handleVote('dislike'));
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        } else {
+            console.log("Firebase config not found. Feedback feature is disabled.");
+        }
+        
+        // Initial call to set total weight on page load
+        document.addEventListener('DOMContentLoaded', updateTotalWeight);
+
+    </script>
+</body>
+</html>
+
